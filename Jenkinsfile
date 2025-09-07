@@ -1,11 +1,11 @@
 pipeline {
     agent any
     tools {
-        maven 'Maven3'  // must match the name you configured
-        jdk 'OpenJDK17' // must match the name of your JDK in Jenkins
+        jdk 'jdk17'       // <-- exact name from Jenkins
+        maven 'Maven3'    // <-- exact name from Jenkins
     }
     environment {
-        SONAR_TOKEN = credentials('sonar-token-id') // your Sonar token
+        SONAR_TOKEN = credentials('sonar-token-id') 
     }
     stages {
         stage('Build & Test') {

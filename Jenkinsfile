@@ -1,53 +1,37 @@
 pipeline {
-    agent { label 'maven-slave' } // run on your Maven node
-
-    tools {
-        // Make sure these exact names exist in Jenkins > Global Tool Configuration
-        jdk 'JDK17'
-        maven 'Maven3'
-    }
+    agent { label 'maven-slave' }  // or the agent you use
 
     environment {
-        SONAR_TOKEN = credentials('sonar-token-id') // Jenkins Secret for Sonar
-        JAVA_HOME = tool name: 'JDK17', type: 'jdk'
-        MAVEN_HOME = tool name: 'Maven3', type: 'maven'
-        PATH = "${tool 'Maven3'}/bin:${tool 'JDK17'}/bin:${env.PATH}"
+        JAVA_HOME = tool name: 'jdk17', type: 'jdk'          // exact JDK name in Jenkins
+        PATH = "${env.JAVA_HOME}/bin:${tool 'Maven3'}/bin:${env.PATH}"  // exact Maven name in Jenkins
+        SONAR_TOKEN = credentials('sonar-token-id')          // Jenkins credential ID for Sonar token
     }
 
     stages {
         stage('Checkout') {
             steps {
-                checkout scm
+                git branch: 'main',
+                    url: 'https://github.com/Tony3231/tweet-trend-new.git',
+                    credentialsId: 'Github_credentials'
             }
         }
 
         stage('Build & Test') {
             steps {
-                script {
-                    // Skip test failures to avoid pipeline crash
-                    sh "${MAVEN_HOME}/bin/mvn clean verify -DskipTests"
-                }
+                sh 'mvn clean verify'
             }
         }
 
         stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv('SonarQubeServer') {
-                    sh "${MAVEN_HOME}/bin/mvn sonar:sonar \
-                        -Dsonar.projectKey=namg04-key_namtrend \
-                        -Dsonar.projectName=Namtrend \
-                        -Dsonar.host.url=${env.SONAR_HOST_URL} \
-                        -Dsonar.login=${SONAR_TOKEN} \
-                        -Dsonar.java.binaries=target/classes \
-                        -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml"
-                }
-            }
-        }
-
-        stage('Quality Gate') {
-            steps {
-                timeout(time: 5, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: true
+                withSonarQubeEnv('SonarCloud') { // name of your SonarCloud server in Jenkins
+                    sh """
+                        mvn sonar:sonar \
+                        -Dsonar.projectKey=Tony3231_tweet-trend-new \
+                        -Dsonar.organization=Tony3231 \
+                        -Dsonar.host.url=https://sonarcloud.io \
+                        -Dsonar.login=${SONAR_TOKEN}
+                    """
                 }
             }
         }
@@ -55,14 +39,12 @@ pipeline {
 
     post {
         always {
-            echo 'Cleaning up workspace'
-            cleanWs()
-        }
-        success {
-            echo 'Pipeline finished successfully'
+            echo 'Pipeline finished.'
         }
         failure {
-            echo 'Pipeline failed'
+            mail to: 'your-email@example.com',
+                 subject: "Pipeline Failed: ${currentBuild.fullDisplayName}",
+                 body: "Check Jenkins console output: ${env.BUILD_URL}"
         }
     }
 }

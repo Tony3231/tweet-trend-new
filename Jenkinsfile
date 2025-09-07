@@ -8,7 +8,8 @@ pipeline {
     stages {
         stage("Build") {
             steps {
-                sh 'mvn clean deploy'
+                // Limit surefire forks to prevent VM crash
+                sh 'mvn clean deploy -Dsurefire.forkCount=1 -Dsurefire.reuseForks=false'
             }
         }
     }

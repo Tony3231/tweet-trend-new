@@ -6,32 +6,58 @@ pipeline {
     }
 
     stages {
-        stage("build") {
+
+        stage("Build") {
             steps {
-                echo "-------- build started --------"
+                echo "-------- Build started --------"
                 sh 'mvn clean deploy -Dmaven.test.skip=true'
-                echo "-------- build completed --------"
+                echo "-------- Build completed --------"
             }
         }
 
-        stage("test") {
+        stage("Unit Test") {
             steps {
-                echo "-------- unit test started --------"
+                echo "-------- Unit test started --------"
                 sh 'mvn surefire-report:report'
-                echo "-------- unit test completed --------"
+                echo "-------- Unit test completed --------"
             }
         }
 
-        stage('SonarQube analysis') {
+        stage("SonarQube Analysis") {
             environment {
-                scannerHome = tool 'namg-sonar-scanner' // sonar scanner name should match Jenkins tool config
+                scannerHome = tool 'namg-sonar-scanner' // Name of your SonarQube Scanner in Jenkins
             }
             steps {
-                // Add SonarQube server environment
-                withSonarQubeEnv('namg-sonarqube-server') {
-                    sh "${scannerHome}/bin/sonar-scanner" // Runs Sonar scanner and sends analysis to SonarQube server
+                echo "-------- SonarQube analysis started --------"
+                withSonarQubeEnv('namg-sonarqube-server') { // Name of your SonarQube server in Jenkins
+                    sh """
+                        ${scannerHome}/bin/sonar-scanner \
+                        -Dsonar.projectKey=tweet-trend \
+                        -Dsonar.sources=src \
+                        -Dsonar.java.binaries=target/classes
+                    """
                 }
+                echo "-------- SonarQube analysis completed --------"
             }
+        }
+
+        stage("Quality Gate") {
+            steps {
+                echo "-------- Waiting for SonarQube Quality Gate --------"
+                timeout(time: 1, unit: 'HOURS') {
+                    waitForQualityGate abortPipeline: true
+                }
+                echo "-------- Quality Gate passed --------"
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Pipeline completed successfully ✅"
+        }
+        failure {
+            echo "Pipeline failed ❌"
         }
     }
 }

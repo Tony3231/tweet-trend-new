@@ -1,49 +1,44 @@
 pipeline {
-    agent {
-        label 'maven-slave'  // Make sure this agent has Maven and JDK installed
+    agent any
+
+    tools {
+        jdk 'jdk17'            // Name of JDK configured in Jenkins
+        maven 'Maven 3.9.6'    // Name of Maven configured in Jenkins
     }
 
     environment {
-        JAVA_HOME = '/usr/lib/jvm/java-17-openjdk-amd64'   // Your JDK path
-        PATH = "${JAVA_HOME}/bin:/opt/apache-maven-3.9.6/bin:${env.PATH}"
+        SONAR_TOKEN = credentials('sonar-token-id')
     }
 
     stages {
-
         stage('Checkout') {
             steps {
                 checkout scm
             }
         }
 
-        stage('Build & Compile') {
+        stage('Build') {
             steps {
-                // Skipping tests to avoid fork VM crash
-                sh 'mvn clean verify -DskipTests'
+                sh 'mvn clean install'
             }
         }
 
         stage('SonarQube Analysis') {
             steps {
-                withCredentials([string(credentialsId: 'sonar-token-id', variable: 'SONAR_TOKEN')]) {
-                    sh """
-                        mvn sonar:sonar \
-                        -Dsonar.projectKey=Tony3231 \
-                        -Dsonar.organization=Tony3231 \
-                        -Dsonar.host.url=https://sonarcloud.io \
-                        -Dsonar.login=${SONAR_TOKEN}
-                    """
-                }
+                sh "mvn sonar:sonar -Dsonar.login=${SONAR_TOKEN}"
             }
         }
     }
 
     post {
+        always {
+            echo 'Pipeline finished.'
+        }
         success {
-            echo 'Pipeline finished successfully!'
+            echo 'Build and Sonar analysis succeeded.'
         }
         failure {
-            echo 'Pipeline failed! Check logs for details.'
+            echo 'Build or Sonar analysis failed.'
         }
     }
 }

@@ -2,9 +2,10 @@ pipeline {
     agent any
 
     tools {
-        jdk 'jdk17'            // Name of JDK configured in Jenkins
-        maven 'Maven 3.9.6'    // Name of Maven configured in Jenkins
-    }
+    jdk 'jdk17'            // must match your JDK installation name
+    maven 'Maven 3.9.6'    // must match Maven installation name
+}
+
 
     environment {
         SONAR_TOKEN = credentials('sonar-token-id')

@@ -1,14 +1,13 @@
 pipeline {
     agent any
+    tools {
+        maven 'Maven3'  // must match the name you configured
+        jdk 'OpenJDK17' // must match the name of your JDK in Jenkins
+    }
     environment {
-        SONAR_TOKEN = credentials('sonar-credentials')
+        SONAR_TOKEN = credentials('sonar-token-id') // your Sonar token
     }
     stages {
-        stage('Checkout') {
-            steps {
-                checkout scm
-            }
-        }
         stage('Build & Test') {
             steps {
                 sh 'mvn clean verify'
@@ -17,23 +16,9 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv('namg-sonarqube-server') {
-                    sh """
-                    sonar-scanner \
-                    -Dsonar.projectKey=namg04-key_namtrend_${env.BRANCH_NAME} \
-                    -Dsonar.branch.name=${env.BRANCH_NAME} \
-                    -Dsonar.organization=namg04-key \
-                    -Dsonar.sources=src/main/java \
-                    -Dsonar.java.binaries=target/classes \
-                    -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml \
-                    -Dsonar.projectName=Namtrend
-                    """
+                    sh 'mvn sonar:sonar -Dsonar.login=$SONAR_TOKEN'
                 }
             }
-        }
-    }
-    post {
-        always {
-            echo "Pipeline finished!"
         }
     }
 }

@@ -1,20 +1,12 @@
 pipeline {
-    agent { label 'maven-slave' } // ensure this node has Maven installed
+    agent { label 'maven-slave' }
 
     environment {
-        // Make sure this matches the Jenkins credentials ID
-        SONAR_TOKEN = credentials('sonar-credentials') 
+        SONAR_TOKEN = credentials('sonar-credentials')
         GIT_CREDENTIALS = 'Github_credentials'
     }
 
-    options {
-        skipDefaultCheckout(true)
-        buildDiscarder(logRotator(numToKeepStr: '10'))
-        timestamps()
-    }
-
     stages {
-
         stage('Checkout SCM') {
             steps {
                 echo 'Checking out Git repository...'
@@ -34,19 +26,26 @@ pipeline {
         stage('Build') {
             steps {
                 echo 'Building the project with Maven...'
-                sh 'mvn clean install'
+                script {
+                    // Use the Maven tool configured in Jenkins
+                    def mvnHome = tool name: 'Maven3', type: 'maven'
+                    sh "${mvnHome}/bin/mvn clean install"
+                }
             }
         }
 
         stage('SonarQube Analysis') {
             steps {
                 echo 'Running SonarQube analysis...'
-                sh """
-                mvn sonar:sonar \
-                    -Dsonar.projectKey=tweet-trend-new \
-                    -Dsonar.host.url=http://your-sonarqube-server:9000 \
-                    -Dsonar.login=${SONAR_TOKEN}
-                """
+                script {
+                    def mvnHome = tool name: 'Maven3', type: 'maven'
+                    sh """
+                        ${mvnHome}/bin/mvn sonar:sonar \
+                        -Dsonar.projectKey=tweet-trend-new \
+                        -Dsonar.host.url=http://your-sonarqube-server:9000 \
+                        -Dsonar.login=${SONAR_TOKEN}
+                    """
+                }
             }
         }
     }

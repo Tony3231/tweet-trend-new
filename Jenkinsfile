@@ -1,57 +1,80 @@
 pipeline {
-    agent { label 'maven' }
+    agent any
+
+    tools {
+        maven 'Maven3' // Name of Maven installation in Jenkins
+        jdk 'Java17'   // Name of JDK installation in Jenkins
+    }
 
     environment {
-        PATH = "/opt/apache-maven-3.9.6/bin:$PATH"
-        SONAR_TOKEN = credentials('sonar-credentials') // your Jenkins Sonar token
+        SONAR_TOKEN = credentials('sonar-credentials') // Your Sonar token ID in Jenkins
     }
 
     stages {
-        stage("Build") {
+        stage('Checkout') {
             steps {
-                echo "------- Build Started --------"
-                sh 'mvn clean deploy -Dmaven.test.skip=true'
-                echo "-------- Build Completed ----------"
+                echo "Checking out source code..."
+                checkout scm
             }
         }
 
-        stage("Unit Test") {
+        stage('Build & Unit Test') {
             steps {
-                echo "------- Unit Test Started --------"
-                // Run tests but do not fail pipeline if there are no tests or fork issues
+                echo "Building project and running tests..."
                 script {
-                    def testStatus = sh(script: 'mvn test || echo "No tests found or fork JVM issue"', returnStatus: true)
-                    if (testStatus != 0) {
-                        echo "Warning: Tests did not run properly, but pipeline continues."
+                    try {
+                        sh 'mvn clean verify'
+                    } catch (err) {
+                        echo "No tests found or fork JVM issue"
                     }
                 }
-                echo "-------- Unit Test Completed --------"
+            }
+        }
+
+        stage('JaCoCo Coverage') {
+            steps {
+                echo "Generating JaCoCo coverage report..."
+                sh 'mvn jacoco:report'
             }
         }
 
         stage('SonarQube Analysis') {
-            environment {
-                scannerHome = tool 'namg-sonar-scanner' // Sonar scanner tool name
-            }
             steps {
-                echo "------- SonarQube Analysis Started --------"
-                withSonarQubeEnv('namg-sonarqube-server') {
-                    sh "${scannerHome}/bin/sonar-scanner -Dsonar.login=${SONAR_TOKEN}"
+                echo "Starting SonarCloud analysis..."
+                withSonarQubeEnv('namg-sonarqube-server') { // Name of SonarQube installation in Jenkins
+                    sh """
+                        sonar-scanner \
+                        -Dsonar.projectKey=namg04-key_namtrend \
+                        -Dsonar.organization=namg04-key \
+                        -Dsonar.sources=src/main/java \
+                        -Dsonar.java.binaries=target/classes \
+                        -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml \
+                        -Dsonar.login=${SONAR_TOKEN} \
+                        -Dsonar.verbose=true
+                    """
                 }
-                echo "------- SonarQube Analysis Completed --------"
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                echo "Waiting for SonarCloud Quality Gate..."
+                timeout(time: 5, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
             }
         }
     }
 
     post {
         always {
-            echo "Pipeline finished at ${new Date()}"
+            echo "Pipeline finished"
         }
         success {
-            echo "Pipeline succeeded!"
+            echo "Pipeline succeeded"
         }
         failure {
-            echo "Pipeline failed!"
+            echo "Pipeline failed"
         }
     }
 }

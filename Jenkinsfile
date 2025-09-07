@@ -1,27 +1,31 @@
 pipeline {
-    agent any
+    agent { label 'maven-slave' }
 
     environment {
-        SONAR_TOKEN = credentials('sonar-token') // Jenkins credential ID for your SonarCloud token
+        // SonarQube credentials from Jenkins
+        SONAR_TOKEN = credentials('sonar-credentials')
     }
 
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/Tony3231/SunnxtFramework.git'
+                // Checkout from GitHub
+                git branch: 'main',
+                    url: 'https://github.com/Tony3231/tweet-trend-new.git',
+                    credentialsId: 'Github_credentials'
             }
         }
 
-        stage('Maven Build') {
+        stage('Build') {
             steps {
-                // Skip tests temporarily to avoid Surefire crash
-                sh 'mvn clean install -DskipTests=true'
+                echo 'Building the project with Maven...'
+                sh 'mvn clean install'
             }
         }
 
-        stage('SonarCloud Analysis') {
+        stage('SonarQube Analysis') {
             steps {
-                // Run SonarCloud scanner
+                echo 'Running SonarQube analysis...'
                 sh """
                     mvn sonar:sonar \
                     -Dsonar.projectKey=tweet-trend \
@@ -34,14 +38,11 @@ pipeline {
     }
 
     post {
-        always {
-            echo 'Pipeline finished!'
-        }
         success {
-            echo 'Build and analysis succeeded!'
+            echo 'Pipeline finished successfully!'
         }
         failure {
-            echo 'Build or analysis failed!'
+            echo 'Build or SonarQube analysis failed!'
         }
     }
 }

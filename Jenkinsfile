@@ -1,22 +1,36 @@
 pipeline {
-    agent any
-    tools {
-        jdk 'Java17'        // <-- exact name from Jenkins Global Tool Configuration
-        maven 'Maven3'      // <-- exact name from Jenkins if configured
-    }
+    agent { label 'maven-slave' }
+
     environment {
-        SONAR_TOKEN = credentials('sonar-token-id') 
+        SONAR_TOKEN = credentials('sonar-token-id')
     }
+
+    tools {
+        jdk 'JDK17'       // exact name from Global Tool Config
+        maven 'Maven3'    // exact name from Global Tool Config
+    }
+
     stages {
+        stage('Checkout') {
+            steps { checkout scm }
+        }
+
         stage('Build & Test') {
             steps {
-                sh 'mvn clean verify'
+                script {
+                    def mvnHome = tool 'Maven3'
+                    sh "${mvnHome}/bin/mvn clean verify"
+                }
             }
         }
+
         stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv('namg-sonarqube-server') {
-                    sh 'mvn sonar:sonar -Dsonar.login=$SONAR_TOKEN'
+                withSonarQubeEnv('MySonarQube') {
+                    script {
+                        def mvnHome = tool 'Maven3'
+                        sh "${mvnHome}/bin/mvn sonar:sonar -Dsonar.login=${SONAR_TOKEN}"
+                    }
                 }
             }
         }

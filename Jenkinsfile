@@ -1,8 +1,8 @@
 pipeline {
     agent any
     tools {
-        jdk 'jdk17'       // <-- exact name from Jenkins
-        maven 'Maven3'    // <-- exact name from Jenkins
+        jdk 'Java17'        // <-- exact name from Jenkins Global Tool Configuration
+        maven 'Maven3'      // <-- exact name from Jenkins if configured
     }
     environment {
         SONAR_TOKEN = credentials('sonar-token-id') 

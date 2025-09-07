@@ -1,14 +1,9 @@
 pipeline {
-    agent any
+    agent { label 'maven-slave' }
 
     tools {
-    jdk 'jdk17'            // must match your JDK installation name
-    maven 'Maven 3.9.6'    // must match Maven installation name
-}
-
-
-    environment {
-        SONAR_TOKEN = credentials('sonar-token-id')
+        maven 'Maven 3.9.6'  // must match the name in Global Tool Config
+        jdk 'jdk17'           // must match your JDK name
     }
 
     stages {
@@ -25,21 +20,12 @@ pipeline {
         }
 
         stage('SonarQube Analysis') {
-            steps {
-                sh "mvn sonar:sonar -Dsonar.login=${SONAR_TOKEN}"
+            environment {
+                SONAR_TOKEN = credentials('sonar-token-id')
             }
-        }
-    }
-
-    post {
-        always {
-            echo 'Pipeline finished.'
-        }
-        success {
-            echo 'Build and Sonar analysis succeeded.'
-        }
-        failure {
-            echo 'Build or Sonar analysis failed.'
+            steps {
+                sh 'mvn sonar:sonar -Dsonar.login=$SONAR_TOKEN'
+            }
         }
     }
 }

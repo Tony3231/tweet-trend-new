@@ -24,20 +24,27 @@ pipeline {
         }
 
         stage("SonarQube Analysis") {
-            environment {
-                scannerHome = tool 'namg-sonar-scanner' // Name of your SonarQube Scanner in Jenkins
-            }
             steps {
-                echo "-------- SonarQube analysis started --------"
-                withSonarQubeEnv('namg-sonarqube-server') { // Name of your SonarQube server in Jenkins
-                    sh """
-                        ${scannerHome}/bin/sonar-scanner \
-                        -Dsonar.projectKey=tweet-trend \
-                        -Dsonar.sources=src \
-                        -Dsonar.java.binaries=target/classes
-                    """
+                script {
+                    // Attempt to find the SonarQube Scanner tool
+                    def scannerHome = ''
+                    try {
+                        scannerHome = tool name: 'namg-sonar-scanner', type: 'hudson.plugins.sonar.SonarRunnerInstallation'
+                    } catch (err) {
+                        error "SonarQube Scanner tool 'namg-sonar-scanner' not found! Configure it in Jenkins Global Tool Configuration."
+                    }
+
+                    echo "-------- SonarQube analysis started --------"
+                    withSonarQubeEnv('namg-sonarqube-server') {
+                        sh """
+                            ${scannerHome}/bin/sonar-scanner \
+                            -Dsonar.projectKey=tweet-trend \
+                            -Dsonar.sources=src \
+                            -Dsonar.java.binaries=target/classes
+                        """
+                    }
+                    echo "-------- SonarQube analysis completed --------"
                 }
-                echo "-------- SonarQube analysis completed --------"
             }
         }
 

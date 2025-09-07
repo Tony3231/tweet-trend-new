@@ -6,8 +6,8 @@ pipeline {
     }
 
     tools {
-        jdk 'JDK17'       // exact name from Global Tool Config
-        maven 'Maven3'    // exact name from Global Tool Config
+        jdk 'jdk17'            // exact name from Global Tool Config
+        maven 'Maven 3.9.6'    // exact name from Global Tool Config
     }
 
     stages {
@@ -18,7 +18,7 @@ pipeline {
         stage('Build & Test') {
             steps {
                 script {
-                    def mvnHome = tool 'Maven3'
+                    def mvnHome = tool 'Maven 3.9.6'
                     sh "${mvnHome}/bin/mvn clean verify"
                 }
             }
@@ -28,7 +28,7 @@ pipeline {
             steps {
                 withSonarQubeEnv('MySonarQube') {
                     script {
-                        def mvnHome = tool 'Maven3'
+                        def mvnHome = tool 'Maven 3.9.6'
                         sh "${mvnHome}/bin/mvn sonar:sonar -Dsonar.login=${SONAR_TOKEN}"
                     }
                 }

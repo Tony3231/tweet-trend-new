@@ -1,5 +1,8 @@
 pipeline {
     agent any
+    environment {
+        SONAR_TOKEN = credentials('sonar-credentials')
+    }
     stages {
         stage('Checkout') {
             steps {
@@ -12,9 +15,6 @@ pipeline {
             }
         }
         stage('SonarQube Analysis') {
-            environment {
-                SONAR_TOKEN = credentials('sonar-credentials')
-            }
             steps {
                 withSonarQubeEnv('namg-sonarqube-server') {
                     sh """

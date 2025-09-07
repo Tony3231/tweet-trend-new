@@ -1,64 +1,38 @@
 pipeline {
-    agent { label 'maven-slave' }
+    agent {label 'maven'}
 
     environment {
-        SONAR_TOKEN = credentials('sonar-credentials')
-        GIT_CREDENTIALS = 'Github_credentials'
+        PATH = "/opt/apache-maven-3.9.6/bin:$PATH"
     }
 
     stages {
-        stage('Checkout SCM') {
+        stage("build"){
             steps {
-                echo 'Checking out Git repository...'
-                checkout([
-                    $class: 'GitSCM',
-                    branches: [[name: '*/main']],
-                    doGenerateSubmoduleConfigurations: false,
-                    extensions: [],
-                    userRemoteConfigs: [[
-                        url: 'https://github.com/Tony3231/tweet-trend-new.git',
-                        credentialsId: "${GIT_CREDENTIALS}"
-                    ]]
-                ])
+                echo "------- build started --------"
+                sh 'mvn clean deploy -Dmaven.test.skip=true'
+                echo "--------build completed ----------"
             }
         }
 
-        stage('Build') {
+        stage("test"){
+            steps{
+                echo "-------unit test started --------"
+                sh 'mvn surefire-report:report'
+                echo "--------unit test completed -------"
+            }
+        }
+
+        stage('SonarQube analysis') {
+            environment{
+                scannerHome = tool 'namg-sonar-scanner' // sonar scanner name should be same as what we have defined in the tools
+            }
+
             steps {
-                echo 'Building the project with Maven...'
-                script {
-                    // Use the Maven tool configured in Jenkins
-                    def mvnHome = tool name: 'Maven3', type: 'maven'
-                    sh "${mvnHome}/bin/mvn clean install"
+                // in the steps we are adding our sonar cube server that is with Sonar Cube environment.
+                withSonarQubeEnv('namg-sonarqube-server') {
+                    sh "${scannerHome}/bin/sonar-scanner" // This is going to communicate with our sonar cube server and send the analysis report.
                 }
             }
-        }
-
-        stage('SonarQube Analysis') {
-            steps {
-                echo 'Running SonarQube analysis...'
-                script {
-                    def mvnHome = tool name: 'Maven3', type: 'maven'
-                    sh """
-                        ${mvnHome}/bin/mvn sonar:sonar \
-                        -Dsonar.projectKey=tweet-trend-new \
-                        -Dsonar.host.url=http://your-sonarqube-server:9000 \
-                        -Dsonar.login=${SONAR_TOKEN}
-                    """
-                }
-            }
-        }
-    }
-
-    post {
-        success {
-            echo 'Build and SonarQube analysis completed successfully!'
-        }
-        failure {
-            echo 'Build or SonarQube analysis failed!'
-        }
-        always {
-            cleanWs()
         }
     }
 }

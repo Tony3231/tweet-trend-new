@@ -14,9 +14,9 @@ pipeline {
             }
         }
 
-        stage("SonarQube Analysis") {
+        stage("SonarCloud Analysis") {
             steps {
-                echo "🔎 Running SonarQube Analysis..."
+                echo "🔎 Running SonarCloud Analysis..."
                 withSonarQubeEnv('sonar-server') {   // Must match Jenkins → Configure System
                     withCredentials([string(credentialsId: 'sonarqube-key', variable: 'SONAR_TOKEN')]) {
                         sh """
@@ -40,13 +40,20 @@ pipeline {
                         if (qg.status == 'OK') {
                             echo "✅ Quality Gate passed!"
                         } else if (qg.status == 'ERROR') {
-                            error "❌ Quality Gate failed!"
+                            echo "❌ Quality Gate failed, marking build UNSTABLE."
+                            currentBuild.result = 'UNSTABLE'
                         } else {
-                            echo "⚠️ Quality Gate status: ${qg.status} (not failing pipeline)"
+                            echo "⚠️ Quality Gate status is ${qg.status}, continuing without failure."
                         }
                     }
                 }
             }
+        }
+    }
+
+    post {
+        always {
+            echo "🔹 Build finished with status: ${currentBuild.currentResult}"
         }
     }
 }

@@ -1,15 +1,17 @@
 pipeline {
-     agent {label ''[Dmaven['}
+    agent { label 'maven' }
 
-environment {
-     PATH = ""[D/opt/apache-maven-3.9.11/bin:$PATH"
-}
-     stages {
-        stage("build"){
-	steps {
-	    sh 'mvn clean deploy'
-	    }
-	   }
-	}
+    environment {
+        PATH = "/opt/apache-maven-3.9.11/bin:$PATH"
+    }
 
+    stages {
+        stage("build") {
+            steps {
+                sh 'mvn clean deploy'
+            }
+        }
+    }
 }
+
+

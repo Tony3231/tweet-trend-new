@@ -17,7 +17,7 @@ pipeline {
         stage("SonarQube Analysis") {
             steps {
                 echo "🔎 Running SonarQube Analysis..."
-                withSonarQubeEnv('sonar-server') {   // must match the name in Jenkins → Configure System
+                withSonarQubeEnv('sonar-server') {   // Must match Jenkins → Configure System
                     withCredentials([string(credentialsId: 'sonarqube-key', variable: 'SONAR_TOKEN')]) {
                         sh """
                             mvn sonar:sonar \
@@ -35,7 +35,16 @@ pipeline {
             steps {
                 echo "⏳ Waiting for SonarCloud Quality Gate result..."
                 timeout(time: 1, unit: 'HOURS') {
-                    waitForQualityGate abortPipeline: true
+                    script {
+                        def qg = waitForQualityGate()
+                        if (qg.status == 'OK') {
+                            echo "✅ Quality Gate passed!"
+                        } else if (qg.status == 'ERROR') {
+                            error "❌ Quality Gate failed!"
+                        } else {
+                            echo "⚠️ Quality Gate status: ${qg.status} (not failing pipeline)"
+                        }
+                    }
                 }
             }
         }

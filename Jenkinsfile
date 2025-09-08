@@ -6,15 +6,37 @@ pipeline {
     }
 
     stages {
-        stage("Clone") {
+        stage("Build") {
             steps {
-                git branch: 'main', url: 'https://github.com/Tony3231/tweet-trend-new'
+                echo "🚀 Starting Maven Build..."
+                sh 'mvn clean install -DskipTests'
+                echo "✅ Build Completed"
             }
         }
 
-        stage("Build") {
+        stage("SonarQube Analysis") {
             steps {
-                sh 'mvn clean deploy'
+                echo "🔎 Running SonarQube Analysis..."
+                withSonarQubeEnv('sonar-server') {
+                    withCredentials([string(credentialsId: 'SONARQUBE_KEY', variable: 'SONAR_TOKEN')]) {
+                        sh """
+                            mvn sonar:sonar \
+                              -Dsonar.projectKey=tony888_tony \
+                              -Dsonar.organization=tony888 \
+                              -Dsonar.host.url=https://sonarcloud.io \
+                              -Dsonar.login=$SONAR_TOKEN
+                        """
+                    }
+                }
+            }
+        }
+
+        stage("Quality Gate") {
+            steps {
+                echo "⏳ Waiting for SonarCloud Quality Gate result..."
+                timeout(time: 1, unit: 'HOURS') {
+                    waitForQualityGate abortPipeline: true
+                }
             }
         }
     }

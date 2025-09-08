@@ -1,30 +1,14 @@
 pipeline {
-    agent { label 'maven-slave' }
+    agent { label 'maven' }
 
-    tools {
-        maven 'Maven 3.9.6'  // must match the name in Global Tool Config
-        jdk 'jdk17'           // must match your JDK name
-    }
-
-    stages {
-        stage('Checkout') {
-            steps {
-                checkout scm
+    environment {
+                PATH = "/opt/apache-maven-3.9.11/bin:$PATH"
             }
-        }
-
-        stage('Build') {
-            steps {
-                sh 'mvn clean install'
-            }
-        }
-
-        stage('SonarQube Analysis') {
-            environment {
-                SONAR_TOKEN = credentials('sonar-token-id')
-            }
-            steps {
-                sh 'mvn sonar:sonar -Dsonar.login=$SONAR_TOKEN'
+            stages {
+                stage("build") {
+                    steps {
+                        sh 'mvn clean deploy'
+                    
             }
         }
     }

@@ -17,8 +17,8 @@ pipeline {
         stage("SonarQube Analysis") {
             steps {
                 echo "🔎 Running SonarQube Analysis..."
-                withSonarQubeEnv('sonar-server') {
-                    withCredentials([string(credentialsId: 'SONARQUBE_KEY', variable: 'SONAR_TOKEN')]) {
+                withSonarQubeEnv('sonar-server') {   // must match the name in Jenkins → Configure System
+                    withCredentials([string(credentialsId: 'sonarqube-key', variable: 'SONAR_TOKEN')]) {
                         sh """
                             mvn sonar:sonar \
                               -Dsonar.projectKey=tony888_tony \
